@@ -241,5 +241,5 @@ let inputHandler= new LRKeyInputHandler()
 let gameController = new GameController(worldModel)
 gameController.player1=new HumanPlayer(snakeController1,inputHandler)
 gameController.player2= new AvoidWallsPlayer(snakeController2)
-gameController.run()
+gameController.run();
 
