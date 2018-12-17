@@ -47,12 +47,25 @@ class WorldModel {
     this.height_= 40
     if(s instanceof Snake) this.snake_= s;
     else throw new Error("Not given a valid snake");
+    this.view_= null
   }
   update(steps) {
     this.snake_.move(steps);
+    this.view_.display(this)
   }
   get snake() {
     return this.snake_;
+  }
+  get height() {
+    return this.height_;
+  }
+  get width() {
+    return this.width_;
+  }
+  set view(v){
+    if (v instanceof View){
+    this.view_ = v;
+    }
   }
 }
 class SnakeController {
@@ -73,17 +86,17 @@ class SnakeController {
     return this.snake_.direction;
   }
   get worldWidth(){
-    return this.worldmodel_.width;
+    return this.world_.width;
   }
   get worldHeight(){
-    return this.worldmodel_.height;
+    return this.world_.height;
   }
 }
 class Player{
   constructor(sc){
     this.sc_=sc;
     if(this.constructor === Player) throw new Error("Cannot instantiate a Snake, which is an abstract base class");
-    else if(!(this.makeNoise instanceof Function)) throw new Error("Base class must implement makeNoise method");
+    else if(!(this.makeTurn instanceof Function)) throw new Error("Base class must implement makeTurn method");
   }
 }
 class AvoidWallsPlayer extends Player{
@@ -102,15 +115,87 @@ class AvoidWallsPlayer extends Player{
    else if(this.sc_.snakeDirection=="down" && this.sc_.worldWidth.y-1)this.sc_.turnSnakeLeft();
    }
 }
+class View{
+  constructor(){
+    if(this.constructor === View) throw new Error("Cannot instantiate a Snake, which is an abstract base class");
+    else if(!(this.display instanceof Function)) throw new Error("Base class must implement makeTurn method");
+  }
+}
+class CanvasView extends View{
+  constructor(scalingFactor){
+    super()
+    this.scalingFactor_ = scalingFactor;
+    this.canvas_ = document.createElement("canvas");
+    document.body.appendChild(this.canvas_);
+    this.context_ = this.canvas_.getContext("2d");
+  }
+  display(w){
+    this.canvas_.width = w.width*this.scalingFactor_;
+    this.canvas_.height = w.height*this.scalingFactor_;
+    this.context_.fillRect(w.snake.position.x*this.scalingFactor_,w.snake.position.y*this.scalingFactor_,this.scalingFactor_,this.scalingFactor_)
+  }
+}
+class InputHandler{
+  constructor(){
+    if(this.constructor === InputHandler) throw new Error("Cannot instantiate an InputHandler, which is an abstract base class");
+    else if(!(this.madeLeftMove instanceof Function)) throw new Error("Base class must implement madeLeftMove method");
+    else if(!(this.madeRightMove instanceof Function)) throw new Error("Base class must implement madeRightMove method");
+    else if(!(this.resetLeftMove instanceof Function)) throw new Error("Base class must implement resetLeftMove method");
+    else if(!(this.resetRightMove instanceof Function)) throw new Error("Base class must implement resetRightMove method");
+  }
+}
+class LRKeyInputHandler extends InputHandler{
+  constructor(){
+    super()
+    this.wasLeftArrowPushed_= false
+    this.wasRightArrowPushed_= false
+    let greeting= (event) => {
+      if (event.keycode===37) this.wasLeftArrowPushed_= true
+      else if (event.keyCode===39) this.wasRightArrowPushed_= true
+    }
+    window.addEventListener("keydown", greeting);
+  }
+  madeLeftMove(){
+    return this.wasLeftArrowPushed_;
+  }
+  madeRightMove(){
+    return this.wasRightArrowPushed_;
+  }
+  resetLeftMove(){
+    this.wasLeftArrowPushed_=false
+  }
+  resetRightMove(){
+    this.wasRightArrowPushed_=false
+  }
+}
+class HumanPlayer extends Player{
+  constructor(sc, inputHandler){
+    super(sc)
+    this.inputHandler_= inputHandler; 
+  }
+  makeTurn(){
+    if (this.inputHandler_.madeLeftMove()){
+      this.sc_.turnSnakeLeft()
+      this.inputHandler_.resetLeftMove()
+    }
+    else if (this.inputHandler_.madeRightMove()){
+      this.sc_.turnSnakeRight()
+      this.inputHandler_.resetRightMove()
+    }
+  }
+}
+class GameController{
+  constructor()
+}
+
 let bigSnake = new Snake()
 let worldModel= new WorldModel(bigSnake)
-worldModel.update(4)
 console.log("Big snakes new position is:", bigSnake.position,);
 bigSnake.turnLeft();
 console.log("Big snake turns:", bigSnake.direction,);
-worldModel.update(2);
 console.log("Big snake new position is:", bigSnake.position,);
 bigSnake.turnLeft();
 console.log("Big snake turns:", bigSnake.direction,);
-worldModel.update(4);
 console.log("Big snake new position is:", bigSnake.position,);
+worldModel.view = new CanvasView(5)
+worldModel.update(4)
